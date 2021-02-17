@@ -1,16 +1,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import RNFetchBlob from "rn-fetch-blob";
 import { isNotNull } from "../../utils/CoreUtil";
-import { getData, getFile } from "./ApiService";
+import { getData } from "./ApiService";
 import { downloadFile, fetchFile } from "./FileService";
 
 const PHOTO_URL = 'photo';
+const PHOTO_STORAGE_KEY = 'photos';
 
-export const searchPhoto = (searchParams, callback, fetchFromServer = false) => {
+export const searchPhoto = (searchParams, fetchFromServer = false, overrideStoredPhotos = false, callback) => {
     searchParams = { page: 0, size: 500, ...searchParams };
 
     if (!fetchFromServer) {
-        const searchKey = JSON.stringify(searchParams);
-        return AsyncStorage.getItem(searchKey).then(storedObject => {
+        return AsyncStorage.getItem(PHOTO_STORAGE_KEY).then(storedObject => {
             if (isNotNull(storedObject)) {
                 storedObject = JSON.parse(storedObject);
                 if (callback) {
@@ -19,24 +20,31 @@ export const searchPhoto = (searchParams, callback, fetchFromServer = false) => 
                     return storedObject;
                 }
             } else {
-                searchPhotosFromServer(searchParams, callback);
+                searchPhotosFromServer(searchParams, true, callback);
             }
         });
     } else {
-        return searchPhotosFromServer(searchParams, callback);
+        return searchPhotosFromServer(searchParams, overrideStoredPhotos, callback);
     }
 
 }
 
-export const getPhotoById = (photoId) => {
-    return fetchFile(PHOTO_URL + '/' + photoId);
+export const getPhotoById = (photoId, params) => {
+    return fetchFile(PHOTO_URL + '/' + photoId, params);
 }
 
-export const downloadPhotoById = (photoId, name) => {
-    return downloadFile(PHOTO_URL + '/' + photoId, { name });
+export const downloadPhotoById = (photoId, params) => {
+    params = {
+        ...params,
+        fileName: params.name,
+        mimeType: 'image/*',
+        fileStoragePath: RNFetchBlob.fs.dirs.PictureDir + '/' + params.name
+    };
+
+    return downloadFile(PHOTO_URL + '/' + photoId, params);
 }
 
-const searchPhotosFromServer = (searchParams, callback) => {
+const searchPhotosFromServer = (searchParams, overrideStoredPhotos, callback) => {
     return getData(PHOTO_URL, searchParams).then(res => {
         const photos = res.content.map((item) => {
             return {
@@ -45,8 +53,9 @@ const searchPhotosFromServer = (searchParams, callback) => {
                 device: item.metadata.model ? item.metadata.model : 'Unknown',
                 size: item.metadata.size,
                 name: item.metadata.name,
+                mimeType: item.metadata.mimeType,
                 thumbnailSource: {
-                    uri: 'data:image/*;base64,' + item.base64EncodedThumbnail
+                    uri: `data:${item.metadata.mimeType};base64,${item.base64EncodedThumbnail}`
                 }
             };
         });
@@ -57,12 +66,33 @@ const searchPhotosFromServer = (searchParams, callback) => {
             data: photos
         };
 
-        AsyncStorage.removeItem(JSON.stringify(searchParams), () => {
-            AsyncStorage.setItem(JSON.stringify(searchParams), JSON.stringify(responseObject));
-        });
+        if (overrideStoredPhotos) {
+            AsyncStorage.removeItem(PHOTO_STORAGE_KEY, () => {
+                AsyncStorage.setItem(PHOTO_STORAGE_KEY, JSON.stringify(responseObject));
+            });
 
-        if (callback) {
-            callback(responseObject);
+            if (callback) {
+                callback(responseObject);
+            }
+        } else {
+            AsyncStorage.getItem(PHOTO_STORAGE_KEY).then(item => {
+                let existingItem = {
+                    data: []
+                };
+                if (isNotNull(item)) {
+                    existingItem = JSON.parse(item);
+                }
+
+                existingItem.totalElements = responseObject.totalElements;
+                existingItem.totalPages = responseObject.totalPages;
+                existingItem.data = [...existingItem.data, ...responseObject.data];
+                responseObject.data = [...existingItem.data];
+
+                AsyncStorage.setItem(PHOTO_STORAGE_KEY, JSON.stringify(existingItem));
+                if (callback) {
+                    callback(responseObject);
+                }
+            });
         }
     });
 }

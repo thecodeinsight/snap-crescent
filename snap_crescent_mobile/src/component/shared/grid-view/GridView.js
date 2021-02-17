@@ -8,7 +8,6 @@ import {
     View
 } from 'react-native';
 import { Image } from 'react-native-elements';
-import { isNotNull } from '../../utils/CoreUtil';
 
 const initialState = {
     dataSource: []
@@ -19,12 +18,12 @@ const WINDOW_WIDTH = Dimensions.get('window').width;
 
 function GridView(props) {
 
-    const { data, imageKey, onGridPress, primaryKey, onRefresh } = props;
+    const { data, imageKey, onGridPress, primaryKey, onRefresh, onEndReached } = props;
     const [state, setState] = useState(initialState);
     const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
-        const dataList = data;
+        const dataList = data.filter(item => !item.isEmpty);
         formatData(dataList);
         setState({ ...state, dataSource: dataList });
     }, [data]);
@@ -67,7 +66,6 @@ function GridView(props) {
                 </View>
             );
         }
-
     }
 
     return (
@@ -78,7 +76,9 @@ function GridView(props) {
                 keyExtractor={item => item[primaryKey]}
                 renderItem={renderItem}
                 refreshing={refreshing}
-                onRefresh={() => { refreshData() }}>
+                onRefresh={() => { refreshData() }}
+                onEndReached={() => { onEndReached() }}
+                onEndReachedThreshold={0.3}>
             </FlatList>
         </SafeAreaView>
     );

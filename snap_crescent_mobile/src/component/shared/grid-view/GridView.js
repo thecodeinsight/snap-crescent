@@ -5,9 +5,11 @@ import {
     FlatList,
     SafeAreaView,
     StyleSheet,
+    Text,
     View
 } from 'react-native';
 import { Image } from 'react-native-elements';
+import CoreStyles from '../../../styles/styles';
 
 const initialState = {
     dataSource: []
@@ -18,7 +20,7 @@ const WINDOW_WIDTH = Dimensions.get('window').width;
 
 function GridView(props) {
 
-    const { data, imageKey, onGridPress, primaryKey, onRefresh, onEndReached } = props;
+    const { data, imageKey, onGridPress, primaryKey, onRefresh, onEndReached, noDataMessage } = props;
     const [state, setState] = useState(initialState);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -70,16 +72,26 @@ function GridView(props) {
 
     return (
         <SafeAreaView style={styles.viewContainer}>
-            <FlatList
-                data={state.dataSource}
-                numColumns={NUMBER_OF_COLUMNS}
-                keyExtractor={item => item[primaryKey]}
-                renderItem={renderItem}
-                refreshing={refreshing}
-                onRefresh={() => { refreshData() }}
-                onEndReached={() => { onEndReached() }}
-                onEndReachedThreshold={0.3}>
-            </FlatList>
+            {
+                state.dataSource?.length
+                    ? <FlatList
+                        data={state.dataSource}
+                        numColumns={NUMBER_OF_COLUMNS}
+                        keyExtractor={item => item[primaryKey]}
+                        renderItem={renderItem}
+                        refreshing={refreshing}
+                        onRefresh={() => { refreshData() }}
+                        onEndReached={() => { onEndReached() }}
+                        onEndReachedThreshold={0.3}>
+                    </FlatList>
+                    : <View style={[CoreStyles.flex1, CoreStyles.centerAlignedContainer]}>
+                        {
+                            noDataMessage?.length
+                                ? <Text style={styles.noData}>{noDataMessage}</Text>
+                                : <Text style={styles.noData}>Nothing to display</Text>
+                        }
+                    </View>
+            }
         </SafeAreaView>
     );
 }
@@ -99,6 +111,11 @@ const styles = StyleSheet.create({
         width: WINDOW_WIDTH / NUMBER_OF_COLUMNS,
         height: WINDOW_WIDTH / NUMBER_OF_COLUMNS,
         resizeMode: 'contain'
+    },
+    noData: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 16
     }
 });
 

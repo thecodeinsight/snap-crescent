@@ -3,18 +3,22 @@ import { StyleSheet, View } from 'react-native';
 import CoreStyles from '../../styles/styles';
 import Loader from '../Loader';
 import { downloadPhotoById, getPhotoById } from '../../core/service/PhotoService';
-import GestureRecognizer from 'react-native-swipe-gestures';
 import { Image } from 'react-native-elements';
 import DropMenu from '../shared/drop-menu/DropMenu';
 import { showErrorToast, showToast } from '../../core/service/ToastService';
 import Share from 'react-native-share';
 import { FILE_RESPONSE_TYPE } from '../../core/service/FileService';
+import ImageViewer from 'react-native-image-zoom-viewer';
+
+const ImageViewerModule = ImageViewer;
 
 class PhotoSlide extends React.Component {
 
     photos = [];
+    photoList = [];
     selectedPhotoId = null;
     photoRequestIntervalId = null;
+    indexOfSelectedPhoto = 0;
     menuItems = [
         { label: 'Share', icon: 'share-alt', hasDivider: true, onPress: () => { this.sharePhoto(this.state.currentPhoto) } },
         { label: 'Download', icon: 'save', onPress: () => { this.downloadPhoto(this.state.currentPhoto) } }
@@ -24,6 +28,17 @@ class PhotoSlide extends React.Component {
         super(props);
         this.photos = props.route?.params?.photos;
         this.selectedPhotoId = props.route?.params?.selectedPhotoId;
+
+        this.photoList = this.photos.map(photo => {
+            return {
+                url: this.getPhotoURL(photo),
+                props: {
+                    ...photo
+                }
+            };
+        });
+
+        this.indexOfSelectedPhoto = this.photos.findIndex(photo => photo.id === this.selectedPhotoId);
 
         this.state = {
             currentPhoto: {},
@@ -73,12 +88,18 @@ class PhotoSlide extends React.Component {
                         .then((res) => {
                             if (res) {
                                 if (photo.id == this.state.currentPhoto.id) {
-                                    photo.source = {
+                                    photo.imageSource = {
                                         uri: res
                                     };
                                     const selectedPhoto = this.photos.find(item => item.id == photo.id);
-                                    selectedPhoto.source = {
+                                    selectedPhoto.imageSource = {
                                         uri: res
+                                    };
+
+                                    const selectedPhotoFromDisplayList = this.photoList.find(item => item.props.id == photo.id);
+                                    selectedPhotoFromDisplayList.url = res;
+                                    selectedPhotoFromDisplayList.props = {
+                                        ...selectedPhoto
                                     };
                                     this.setState({ currentPhoto: { ...photo }, showLoader: false });
                                 } else {
@@ -105,18 +126,10 @@ class PhotoSlide extends React.Component {
         }
     }
 
-    handleSwipeLeft() {
-        if (this.state.currentPhoto.index != (this.photos.length - 1)) {
-            const nextPhotoId = this.photos[this.state.currentPhoto.index + 1].id;
-            this.getPhotoUriById(nextPhotoId);
-        }
-    }
-
-    handleSwipeRight() {
-        if (this.state.currentPhoto.index != 0) {
-            const previousPhotoId = this.photos[this.state.currentPhoto.index - 1].id;
-            this.getPhotoUriById(previousPhotoId);
-        }
+    handleSwipeEvent(index) {
+        this.indexOfSelectedPhoto = index;
+        const nextPhotoId = this.photos[index].id;
+        this.getPhotoUriById(nextPhotoId);
     }
 
     sharePhoto(photo) {
@@ -156,41 +169,48 @@ class PhotoSlide extends React.Component {
         });
     }
 
+    getPhotoURL(photo) {
+        if (photo.imageSource && photo.imageSource.uri) {
+            return photo.imageSource.uri
+        } else {
+            return photo.thumbnailSource.uri
+        }
+    }
+
+    renderImage(props) {
+        return (
+            <View>
+                {
+                    props.imageSource?.uri
+                        ? <Image source={props.imageSource} style={styles.image} PlaceholderContent={<Loader />} />
+                        : <View>
+                            <View style={CoreStyles.loader}><Loader /></View>
+                            <Image source={props.thumbnailSource} style={styles.image} PlaceholderContent={<Loader />} />
+                        </View>
+                }
+            </View>
+        );
+    }
+
     render() {
         return (
-            <View style={CoreStyles.flex1} >
-                <View style={styles.imageContainer}>
-                    <GestureRecognizer
-                        onSwipeLeft={() => { this.handleSwipeLeft() }}
-                        onSwipeRight={() => { this.handleSwipeRight() }}>
-                        <View>
-                            {this.state.showLoader ? <View style={CoreStyles.loader}><Loader /></View> : null}
-                            {
-                                !this.state.currentPhoto?.source?.uri
-                                    ? <Image
-                                        source={this.state.currentPhoto?.thumbnailSource}
-                                        style={styles.image}
-                                        PlaceholderContent={<Loader />} />
-                                    :
-                                    <Image
-                                        source={this.state.currentPhoto?.source}
-                                        style={styles.image}
-                                        PlaceholderContent={<Loader />} />
-                            }
-                        </View>
-                    </GestureRecognizer>
-                </View>
-            </View >
+            <View style={styles.imageContainer}>
+                <ImageViewerModule
+                    renderImage={props => { return this.renderImage(props) }}
+                    renderIndicator={props => null}
+                    index={this.indexOfSelectedPhoto}
+                    imageUrls={this.photoList}
+                    onChange={(index) => { this.handleSwipeEvent(index) }}
+                    backgroundColor={"#000a"}
+                    saveToLocalByLongPress={false} />
+            </View>
         );
     }
 }
 
 const styles = StyleSheet.create({
     imageContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignContent: 'center',
-        backgroundColor: '#000000aa'
+        flex: 1
     },
     image: {
         width: '100%',

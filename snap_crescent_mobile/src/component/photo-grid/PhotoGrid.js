@@ -2,29 +2,44 @@ import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import CoreStyles from '../../styles/styles';
 import { searchPhoto } from '../../core/service/PhotoService';
-import GridView from '../grid-view/GridView';
+import GridView from '../shared/grid-view/GridView';
 import Loader from '../Loader';
 
 const initialState = {
     photoList: [],
+    totalPages: 0,
+    totalElements: 0,
     dataFecthed: false
 };
+
+const PAGE_SIZE = 500;
 
 function PhotoGrid(props) {
 
     const { navigation } = props;
     const [state, setState] = useState(initialState);
+    let page = 0;
 
     useEffect(() => {
         getPhotos();
     }, []);
 
-    const getPhotos = (refreshFromServer) => {
-        return searchPhoto({}, (res) => {
-            if (res) {
-                setState({ ...state, photoList: res.data, dataFecthed: true });
-            }
-        }, refreshFromServer);
+    const getPhotos = (refreshFromServer = false, overrideStoredPhotos = false) => {
+        return searchPhoto(
+            { page: page },
+            refreshFromServer,
+            overrideStoredPhotos,
+            (res) => {
+                if (res) {
+                    setState({
+                        ...state,
+                        photoList: res.data,
+                        totalElements: res.totalElements,
+                        totalPages: res.totalPages,
+                        dataFecthed: true
+                    });
+                }
+            });
     }
 
     const onGridItemClick = (item) => {
@@ -37,6 +52,13 @@ function PhotoGrid(props) {
         );
     };
 
+    const handleOnEndReached = () => {
+        if (state.photoList.length < state.totalElements) {
+            page = state.photoList.length / PAGE_SIZE;
+            getPhotos(true, false);
+        }
+    }
+
     return (
         <View style={CoreStyles.flex1}>
             {
@@ -47,7 +69,8 @@ function PhotoGrid(props) {
                         primaryKey="id"
                         imageKey="thumbnailSource"
                         onGridPress={item => onGridItemClick(item)}
-                        onRefresh={() => { return getPhotos(true) }} />
+                        onRefresh={() => { return getPhotos(true, true) }}
+                        onEndReached={() => { handleOnEndReached() }} />
             }
         </View>
     );

@@ -10,8 +10,8 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.codeinsight.snap_crescent.common.utils.Constant;
 import com.codeinsight.snap_crescent.location.LocationService;
-import com.codeinsight.snap_crescent.utils.Constant;
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
 import com.drew.lang.GeoLocation;
@@ -28,7 +28,7 @@ public class PhotoMetadataServiceImpl implements PhotoMetadataService {
 	@Autowired
 	private LocationService locationService;
 
-	public PhotoMetadata extractMetaData(File file) throws Exception {
+	public PhotoMetadata extractMetaData(String originalFilename, File file) throws Exception {
 
 		Metadata metadata = getMetadata(file);
 		Map<String, String> metaDataMap = new HashMap<>();
@@ -41,16 +41,17 @@ public class PhotoMetadataServiceImpl implements PhotoMetadataService {
 		PhotoMetadata photoMetadata = new PhotoMetadata();
 
 		photoMetadata.setName(metaDataMap.get(Constant.METADATA_FILE_NAME));
-		photoMetadata.setPath(file.getPath());
+		photoMetadata.setInternalName(file.getName());
+		photoMetadata.setPath(file.getName());
 		photoMetadata.setSize(metaDataMap.get(Constant.METADATA_FILE_SIZE));
 		String modifiedDateString = new SimpleDateFormat(Constant.SIMPLE_DATE_FORMAT).format(file.lastModified());
 		Date modifiedDate = new SimpleDateFormat(Constant.SIMPLE_DATE_FORMAT).parse(modifiedDateString);
 
 		if (metaDataMap.get(Constant.METADATA_CREATED_DATE) != null) {
-			photoMetadata.setCreatedDate(new SimpleDateFormat(Constant.SIMPLE_DATE_FORMAT)
+			photoMetadata.setCreationDatetime(new SimpleDateFormat(Constant.SIMPLE_DATE_FORMAT)
 					.parse(metaDataMap.get(Constant.METADATA_CREATED_DATE)));
 		} else {
-			photoMetadata.setCreatedDate(modifiedDate);
+			photoMetadata.setCreationDatetime(modifiedDate);
 		}
 		photoMetadata.setFileTypeName(metaDataMap.get(Constant.METADATA_FILE_TYPE_NAME));
 		photoMetadata.setFileTypeLongName(metaDataMap.get(Constant.METADATA_FILE_TYPE_LONG_NAME));
@@ -59,7 +60,7 @@ public class PhotoMetadataServiceImpl implements PhotoMetadataService {
 		photoMetadata.setHeight(metaDataMap.get(Constant.METADATA_IMAGE_HEIGHT));
 		photoMetadata.setWidth(metaDataMap.get(Constant.METADATA_IMAGE_WIDTH));
 		photoMetadata.setModel(metaDataMap.get(Constant.METADATA_MODEL));
-		photoMetadata.setFspot(metaDataMap.get(Constant.METADATA_FSPOT));
+		photoMetadata.setFstop(metaDataMap.get(Constant.METADATA_FSTOP));
 
 	    Directory directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
 	    int orientation = 1;

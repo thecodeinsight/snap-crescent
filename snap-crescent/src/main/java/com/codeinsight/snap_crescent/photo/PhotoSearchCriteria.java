@@ -1,23 +1,15 @@
 package com.codeinsight.snap_crescent.photo;
 
-public class PhotoSearchCriteria {
+import com.codeinsight.snap_crescent.common.beans.BaseSearchCriteria;
 
-	private Integer page = 0;
-	private Integer size = 100;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-	public Integer getPage() {
-		return page;
-	}
+@Data
+@EqualsAndHashCode(callSuper=false)
+public class PhotoSearchCriteria extends BaseSearchCriteria{
 
-	public void setPage(Integer page) {
-		this.page = page;
-	}
-
-	public Integer getSize() {
-		return size;
-	}
-
-	public void setSize(Integer size) {
-		this.size = size;
-	}
+	private Boolean favorite;
+	private String month;
+	private String year;
 }

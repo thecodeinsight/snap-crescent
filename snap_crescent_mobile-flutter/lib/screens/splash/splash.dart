@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:snap_crescent/resository/app_config_resository.dart';
 import 'package:snap_crescent/screens/login/login.dart';
-import 'package:snap_crescent/screens/photo/photo.dart';
 import 'package:snap_crescent/screens/sync_process/sync_process.dart';
 import 'package:snap_crescent/utils/constants.dart';
 
@@ -15,17 +14,17 @@ class SplashScreen extends StatelessWidget {
     return Scaffold(
         body: Column(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: <Widget>[Expanded(child: SplashScreenView())],
+      children: <Widget>[Expanded(child: _SplashScreenView())],
     ));
   }
 }
 
-class SplashScreenView extends StatefulWidget {
+class _SplashScreenView extends StatefulWidget {
   @override
   _SplashScreenViewState createState() => _SplashScreenViewState();
 }
 
-class _SplashScreenViewState extends State<SplashScreenView> {
+class _SplashScreenViewState extends State<_SplashScreenView> {
   @override
   void initState() {
     super.initState();

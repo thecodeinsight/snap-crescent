@@ -15,7 +15,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Entity
-@Table(name = "photo")
+@Table(name = "PHOTO")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class Photo extends BaseEntity {

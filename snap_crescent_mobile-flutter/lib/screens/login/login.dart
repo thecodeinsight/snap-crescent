@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:snap_crescent/models/app_config.dart';
 import 'package:snap_crescent/resository/app_config_resository.dart';
 import 'package:snap_crescent/screens/sync_process/sync_process.dart';
+import 'package:snap_crescent/services/toast_service.dart';
 import 'package:snap_crescent/utils/constants.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -36,29 +36,60 @@ class _LoginScreenViewState extends State<_LoginScreenView> {
   TextEditingController nameController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
-  _onLoginPressed() {
+  _onLoginPressed() async {
     AppConfig serverUrlConfig = new AppConfig(
         configkey: Constants.appConfigServerURL,
         configValue: serverURLController.text);
+    
+    AppConfig serverUserNameConfig = new AppConfig(
+        configkey: Constants.appConfigServerUserName,
+        configValue: nameController.text);
 
-    AppConfigResository.instance.saveOrUpdateConfig(serverUrlConfig).then((value) =>
-        {Navigator.pushReplacementNamed(context, SyncProcessScreen.routeName)});
+    AppConfig serverPasswordConfig = new AppConfig(
+        configkey: Constants.appConfigServerPassword,
+        configValue: passwordController.text);
+
+    await AppConfigResository.instance.saveOrUpdateConfig(serverUrlConfig);
+    await AppConfigResository.instance.saveOrUpdateConfig(serverUserNameConfig);
+    await AppConfigResository.instance.saveOrUpdateConfig(serverPasswordConfig);
+    Navigator.pushReplacementNamed(context, SyncProcessScreen.routeName);
+            
   }
 
   _showValidationErrors() {
-    Fluttertoast.showToast(
-        msg: "Please fix the errors",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        timeInSecForIosWeb: 1,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 16.0);
+    ToastService.showError("Please fix the errors");
   }
 
   @override
   void initState() {
     super.initState();
+
+    AppConfigResository.instance
+        .findByKey(Constants.appConfigServerURL)
+        .then((value) => {
+              if (value.configValue != null)
+                {this.serverURLController.text = value.configValue!}
+              else
+                {this.serverURLController.text = "http://192.168.0.61:8080"}
+            });
+
+    AppConfigResository.instance
+        .findByKey(Constants.appConfigServerUserName)
+        .then((value) => {
+              if (value.configValue != null)
+                {this.nameController.text = value.configValue!}
+              else
+                {this.nameController.text = "Username"}
+            });
+
+    AppConfigResository.instance
+        .findByKey(Constants.appConfigServerPassword)
+        .then((value) => {
+              if (value.configValue != null)
+                {this.passwordController.text = value.configValue!}
+              else
+                {this.passwordController.text = "Password"}
+            });
   }
 
   @override
